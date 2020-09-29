@@ -1,4 +1,4 @@
-import { Component } from 'react'
+import { Component, useState, useEffect, useCallback } from 'react'
 import api from './api' // some realtime API
 
 /*
@@ -17,43 +17,35 @@ const Item = props => (
   </div>
 )
 
-class NewsFeed extends Component {
-  state = {
-    top: []
-  }
+const NewsFeed = props => {
+    const [top, setTop] = useState([])
 
-  handleNewItem = item => {
-    this.setState({
-      top: [...this.state.top, item].sort((a, b) => b.likes - a.likes).slice(0, 100)
-    })
-  }
+    const handleNewItem = useCallback(item => {
+        setTop([...top, item].sort((a, b) => b.likes - a.likes).slice(0, 100))
+    }, [top])
 
-  handleDeleteItem = id => {
-    this.setState({
-      top: this.state.top.filter(item => item.id !== id)
-    })
-  }
+    const handleDeleteItem = useCallback(id => {
+        setTop(top.filter(item => item.id !== id))
+    }, [top])
 
-  componentDidMount() {
-    api.on('newItem', this.handleNewItem)
-    api.on('deleteItem', this.handleDeleteItem)
-  }
+    useEffect(() => {
+        api.on('newItem', handleNewItem)
+        api.on('deleteItem', handleDeleteItem)
 
-  componentWillUnmount() {
-    api.off('newItem', this.handleNewItem)
-    api.off('deleteItem', this.handleDeleteItem)
-  }
+        return () => {
+            api.off('newItem', handleNewItem)
+            api.off('deleteItem', handleDeleteItem)
+        }
+    }, [handleNewItem, handleDeleteItem])
 
-  render() {
     return (
       <div>
         <p>Top 100 news:</p>
-        {this.state.top.map(item =>
+        {top.map(item =>
           <Item title={item.title} text={item.text} />
         )}
       </div>
     )
-  }
 }
 
 export default NewsFeed
