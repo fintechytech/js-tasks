@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 
 const api = {
   /**
@@ -6,23 +6,62 @@ const api = {
    */
   purchase: async () => {
     // an errror may be thrown
-    // throw new Error("Request error")
+    // throw new Error("Request error");
 
-    return 42
+    await new Promise((resolve) =>
+      setTimeout(() => {
+        resolve("result");
+      }, 1000)
+    );
+
+    return 42;
   }
-}
-
+};
 
 class Purchase extends React.Component {
+  state = {
+    purchaseStatus: null
+  };
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return nextState.purchaseStatus !== this.state.purchaseStatus;
+  }
+
+  onPurchaseClick = async () => {
+    this.setState({
+      purchaseStatus: "pending"
+    });
+    try {
+      await api.purchase();
+      this.setState({
+        purchaseStatus: "success"
+      });
+    } catch (e) {
+      this.setState({
+        purchaseStatus: "error"
+      });
+    }
+  };
+
   render() {
+    const { purchaseStatus } = this.state;
     return (
       <div>
-        <button>Purchase</button>
-        <p className="successText">Purchase completed!</p>
-        <p className="errorText">An error occurred!</p>
+        <button
+          disabled={purchaseStatus === "pending"}
+          onClick={this.onPurchaseClick}
+        >
+          Purchase
+        </button>
+        {purchaseStatus === "success" && (
+          <p className="successText">Purchase completed!</p>
+        )}
+        {purchaseStatus === "error" && (
+          <p className="errorText">An error occurred!</p>
+        )}
       </div>
-    )
+    );
   }
 }
 
-export default Purchase
+export default Purchase;
