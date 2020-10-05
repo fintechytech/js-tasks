@@ -15,8 +15,41 @@ const expensiveCalculation = {
 
 /* ---------- edit below this line ---------------- */
 
+const CACHE_LIFETIME = 4000;
+let waitingForCalculationQueue = [];
+const cachedCalculation = {
+	value: null,
+	time: 0,
+	calculationStarted: false,
+};
+
+const startCalculation = async () => {
+	cachedCalculation.calculationStarted = true;
+	const result = await expensiveCalculation.calculateData();
+	cachedCalculation.value = result;
+	cachedCalculation.time = Date.now();
+	cachedCalculation.calculationStarted = false;
+	waitingForCalculationQueue.forEach(res => {
+		res.write(`${result}`);
+		res.end();
+	});
+	waitingForCalculationQueue = [];
+}
+
+const responseWithCachedCalculation = (res) => {
+	const { value, time, calculationStarted } = cachedCalculation;
+	if (value != null && Date.now() - time < CACHE_LIFETIME) {
+		res.write(`${value}`);
+		res.end();
+	} else {
+		waitingForCalculationQueue.push(res);
+		if (!calculationStarted) {
+			startCalculation();
+		}
+	}
+}
+
+
 http.createServer(async (req, res) => {
-  const result = await expensiveCalculation.calculateData()
-  res.write(`${result}`)
-  res.end()
+	responseWithCachedCalculation(res);
 }).listen(5000)
